@@ -1,0 +1,3 @@
+
+[default.databases.sea_orm]
+url = "postgres://root:root@localhost/oxidize"
