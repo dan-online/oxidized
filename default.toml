@@ -1,6 +1,10 @@
 [app]
 # watch DHT for announced info hashes and add to the queue
 spider = true
+# update info hashes in the queue that have no info
+update_info = true
+# update trackers for info hashes daily
+update_trackers = true
 
 [auth]
 # Torznab API key

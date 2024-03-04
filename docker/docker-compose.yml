@@ -13,12 +13,9 @@ services:
       - db
     volumes:
       - ./config.toml:/app/config.toml
-    environment:
-       OXIDIZED_DATABASE_URL: postgres://oxidized:oxidized@postgres/oxidized
-       OXIDIZED_APP_SPIDER: false
-       OXIDIZED_APP_UPDATEINFO: false
-       OXIDIZED_APP_UPDATETRACKERS: false
-       #OXIDIZED_AUTH_APIKEY: 123 # Optional torznab api key
+    # Example environment override:
+    # environment:
+      #  OXIDIZED_DATABASE_URL: postgres://oxidized:oxidized@postgres/oxidized
       
   postgres:
     image: postgres

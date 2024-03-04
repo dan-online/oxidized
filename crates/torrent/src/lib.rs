@@ -157,6 +157,12 @@ impl TorrentTrackers {
 
                                 if let Ok(connection_id) = connection_id {
                                     all.push((tracker, connection_id));
+                                } else {
+                                    warn!(
+                                        "Cannot connect to tracker: {}, error: {}",
+                                        tracker,
+                                        connection_id.err().unwrap()
+                                    );
                                 }
                             }
                         }

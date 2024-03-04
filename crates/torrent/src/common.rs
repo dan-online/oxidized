@@ -48,55 +48,6 @@ pub async fn scrape_udp(
     }
 }
 
-// pub fn urlencode_20_bytes(input: [u8; 20]) -> anyhow::Result<String> {
-//     let mut tmp = [b'%'; 60];
-
-//     for i in 0..input.len() {
-//         hex::encode_to_slice(&input[i..i + 1], &mut tmp[i * 3 + 1..i * 3 + 3]).unwrap();
-//     }
-
-//     let tmp = String::from_utf8(tmp.to_vec()).with_context(|| "from_utf8")?;
-
-//     Ok(tmp)
-// }
-
-// pub async fn scrape_http(address: Url, info_hash: [u8; 20]) -> anyhow::Result<HTTPScrapeResponse> {
-//     // add ?info_hash=urlencode_20_bytes(info_hash) to the address
-//     let client = Client::new();
-
-//     println!(
-//         "Address: {:?} - {}",
-//         address.as_str(),
-//         format!(
-//             "{}?info_hash={}&uploaded=0&downloaded=0&left=0&event=stopped&numwant=0&compact=1",
-//             address.to_string(),
-//             urlencode_20_bytes(info_hash).unwrap()
-//         )
-//     );
-
-//     let response = client
-//         .get(format!(
-//             "{}?info_hash={}&uploaded=0&downloaded=0&left=0&event=stopped&numwant=0&compact=1",
-//             address.to_string(),
-//             urlencode_20_bytes(info_hash).unwrap()
-//         ))
-//         .send()
-//         .await?;
-
-//     let bytes = &response.bytes().await?;
-
-//     // println!("Bytes: {:?}", response.text().await?);
-
-//     let res = HTTPResponse::from_bytes(bytes).with_context(|| "parse response")?;
-
-//     if let HTTPResponse::Scrape(res) = res {
-//         Ok(res)
-//     } else {
-//         Err(anyhow::anyhow!("not scrape response: {:?}", res))
-//     }
-//     // Err(anyhow::anyhow!("not scrape response"))
-// }
-
 pub async fn request_and_response_udp(
     socket: &UdpSocket,
     tracker_addr: SocketAddr,
@@ -120,7 +71,7 @@ pub async fn request_and_response_udp(
 
     {
         let (bytes_read, _) =
-            match tokio::time::timeout(Duration::from_secs(1), socket.recv_from(&mut buffer))
+            match tokio::time::timeout(Duration::from_secs(5), socket.recv_from(&mut buffer))
                 .await?
             {
                 Ok(a) => Ok(a),

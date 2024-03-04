@@ -218,7 +218,7 @@ pub async fn route<'a>(
     let config = get_config();
     let conn = conn.into_inner();
 
-    if query.apikey.unwrap_or_default() != config.auth.apikey {
+    if query.apikey.unwrap_or_default() != config.auth.apikey.unwrap_or_default() {
         return (
             Status::Unauthorized,
             (ContentType::Text, "Unauthorized".to_string()),

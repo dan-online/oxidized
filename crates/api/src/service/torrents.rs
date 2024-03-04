@@ -1,4 +1,5 @@
 use crate::pool::Db;
+use oxidized_config::{get_config, Settings};
 use oxidized_entity::{sea_orm::DatabaseConnection, torrent, torrent::Tracker};
 use oxidized_service::{Mutation, Query};
 use oxidized_torrent::{MagneticoDTorrent, Spider, TorrentInfo, TorrentTrackers};
@@ -25,14 +26,25 @@ impl Fairing for TorrentService {
 
     async fn on_ignite(&self, rocket: Rocket<Build>) -> fairing::Result {
         let conn = &Db::fetch(&rocket).unwrap().conn;
-        let spider = Spider::new();
+        let config = get_config();
 
-        let (info_rx, trackers_rx) = self.spawn_producer(conn.clone());
-        let spider_rx = spider.start().await;
+        let (info_rx, trackers_rx) = self.spawn_producer(conn.clone(), config.clone());
 
-        self.spawn_consumer_info(conn.clone(), info_rx);
-        self.spawn_consumer_trackers(conn.clone(), trackers_rx);
-        self.spawn_consumer_spider(conn.clone(), spider_rx);
+        if config.app.update_info {
+            self.spawn_consumer_info(conn.clone(), info_rx);
+        }
+
+        if config.app.update_trackers {
+            self.spawn_consumer_trackers(conn.clone(), trackers_rx);
+        }
+
+        if config.app.spider {
+            let spider = Spider::new();
+
+            let spider_rx = spider.start().await;
+
+            self.spawn_consumer_spider(conn.clone(), spider_rx);
+        }
 
         Ok(rocket)
     }
@@ -47,6 +59,7 @@ impl TorrentService {
     pub fn spawn_producer(
         &self,
         conn: DatabaseConnection,
+        config: Settings,
     ) -> (
         UnboundedReceiver<torrent::Model>,
         UnboundedReceiver<Vec<torrent::Model>>,
@@ -62,43 +75,41 @@ impl TorrentService {
                 interval.tick().await;
                 let mut queue_lock = queue.lock().await;
 
-                let torrents = Query::find_torrent_queue_info(
-                    &conn,
-                    Some(queue_lock.iter().map(|x| *x).collect()),
-                )
-                .await
-                .expect("Cannot find torrents in queue");
+                if config.app.update_info {
+                    let torrents = Query::find_torrent_queue_info(
+                        &conn,
+                        Some(queue_lock.iter().map(|x| *x).collect()),
+                    )
+                    .await
+                    .expect("Cannot find torrents in queue");
 
-                for torrent in &torrents {
-                    let id = torrent.id.clone();
-
-                    info_tx.send(torrent.clone()).unwrap();
-
-                    queue_lock.insert(id);
-                }
-
-                let torrents_trackers = Query::find_torrent_queue_trackers(
-                    &conn,
-                    Some(queue_lock.iter().map(|x| *x).collect()),
-                )
-                .await
-                .expect("Cannot find tracker torrents in queue");
-
-                for chunk in torrents_trackers.chunks(10) {
-                    trackers_tx.send(chunk.to_vec()).unwrap();
-
-                    for torrent in chunk {
+                    for torrent in &torrents {
                         let id = torrent.id.clone();
+
+                        info_tx.send(torrent.clone()).unwrap();
 
                         queue_lock.insert(id);
                     }
                 }
 
-                debug!(
-                    "{} sent to info queue and {} sent to trackers queue",
-                    torrents.len(),
-                    torrents_trackers.len()
-                );
+                if config.app.update_trackers {
+                    let torrents_trackers = Query::find_torrent_queue_trackers(
+                        &conn,
+                        Some(queue_lock.iter().map(|x| *x).collect()),
+                    )
+                    .await
+                    .expect("Cannot find tracker torrents in queue");
+
+                    for chunk in torrents_trackers.chunks(10) {
+                        trackers_tx.send(chunk.to_vec()).unwrap();
+
+                        for torrent in chunk {
+                            let id = torrent.id.clone();
+
+                            queue_lock.insert(id);
+                        }
+                    }
+                }
             }
         });
 

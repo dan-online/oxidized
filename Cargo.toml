@@ -6,7 +6,15 @@ edition = "2021"
 publish = false
 
 [workspace]
-members = [".", "api", "service", "entity", "torrent", "migration", "config"]
+members = [
+    ".",
+    "crates/api",
+    "crates/service",
+    "crates/entity",
+    "crates/torrent",
+    "crates/migration",
+    "crates/config",
+]
 
 [dependencies]
-oxidized-api = { path = "api" }
+oxidized-api = { path = "crates/api" }
