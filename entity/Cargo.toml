@@ -1,15 +1,15 @@
 [package]
-name = "entity"
+name = "oxidized-entity"
 version = "0.1.0"
 edition = "2021"
 publish = false
 
 [lib]
-name = "entity"
 path = "src/lib.rs"
 
 [dependencies]
 rocket = { version = "0.5.0", features = ["json"] }
-
-[dependencies.sea-orm]
-version = "0.12.14" # sea-orm version
+sea-orm = "0.12.14"
+serde = "1.0.197"
+serde_json = "1.0.114"
+tokio = "1.36.0"

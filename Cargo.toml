@@ -1,12 +1,12 @@
 [package]
-name = "sea-orm-rocket-example"
+name = "oxidized"
 version = "0.1.0"
-authors = ["Sam Samai <sam@studio2pi.com.au>"]
+authors = ["DanCodes <dan@dancodes.online>"]
 edition = "2021"
 publish = false
 
 [workspace]
-members = [".", "api", "service", "entity", "torrent", "migration"]
+members = [".", "api", "service", "entity", "torrent", "migration", "config"]
 
 [dependencies]
-rocket-example-api = { path = "api" }
+oxidized-api = { path = "api" }

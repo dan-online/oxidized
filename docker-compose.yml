@@ -1,0 +1,31 @@
+version: '3'
+
+services:
+  oxidized:
+    image: oxidized
+    container_name: oxidized
+    restart: always
+    depends_on:
+      - postgres
+    ports:
+      - 8000:8000
+    networks:
+      - db
+    environment:
+       DATABASE_URL: postgres://oxidized:oxidized@postgres/oxidized
+       ROCKET_DATABASES: '{sea_orm={url="postgres://oxidized:oxidized@postgres/oxidized"}}'
+      
+  postgres:
+    image: postgres
+    container_name: oxidized-postgres
+    restart: always
+    networks:
+      - db
+    environment:
+      POSTGRES_USER: oxidized
+      POSTGRES_PASSWORD: oxidized
+      POSTGRES_DB: oxidized
+  
+networks:
+  db:
+    driver: bridge

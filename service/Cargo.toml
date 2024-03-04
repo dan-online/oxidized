@@ -1,12 +1,15 @@
 [package]
-name = "rocket-example-service"
+name = "oxidized-service"
 version = "0.1.0"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-entity = { path = "../entity" }
+chrono = { version = "0.4.34", features = ["clock"] }
+oxidized-entity = { path = "../entity" }
+serde = "1.0.197"
+tokio = "1.20.0"
 
 [dependencies.sea-orm]
 version = "0.12.14" # sea-orm version
@@ -17,6 +20,5 @@ features = [
     # "sqlx-sqlite",
 ]
 
-[dev-dependencies]
-tokio = "1.20.0"
-
+[lib]
+path = "src/lib.rs"

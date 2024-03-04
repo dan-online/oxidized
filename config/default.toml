@@ -1,0 +1,11 @@
+[app]
+# watch DHT for announced info hashes and add to the queue
+spider = true
+
+[auth]
+# Torznab API key
+# apikey = "zaqwsxcderfvbgtyhnmjuikolp"
+
+[database]
+url = "postgres://root:root@localhost/oxidized"
+sqlx_logging = false

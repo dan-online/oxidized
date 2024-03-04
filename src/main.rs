@@ -1,3 +1,3 @@
 fn main() {
-    rocket_example_api::main();
+    let _ = oxidized_api::main();
 }

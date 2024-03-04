@@ -1,4 +1,5 @@
-use rocket_example_service::sea_orm;
+use oxidized_config::get_config;
+use oxidized_service::sea_orm;
 
 use async_trait::async_trait;
 use sea_orm::ConnectOptions;
@@ -21,16 +22,26 @@ impl sea_orm_rocket::Pool for SeaOrmPool {
     type Connection = sea_orm::DatabaseConnection;
 
     async fn init(figment: &Figment) -> Result<Self, Self::Error> {
-        let config = figment.extract::<Config>().unwrap();
+        let user_config = get_config();
+
+        let config = Figment::new()
+            .merge(figment.clone())
+            .merge(("", user_config.database))
+            .extract::<Config>()
+            .unwrap();
+
         let mut options: ConnectOptions = config.url.into();
+
         options
             .max_connections(config.max_connections as u32)
             .min_connections(config.min_connections.unwrap_or_default())
             .connect_timeout(Duration::from_secs(config.connect_timeout))
             .sqlx_logging(config.sqlx_logging);
+
         if let Some(idle_timeout) = config.idle_timeout {
             options.idle_timeout(Duration::from_secs(idle_timeout));
         }
+
         let conn = sea_orm::Database::connect(options).await?;
 
         Ok(SeaOrmPool { conn })
