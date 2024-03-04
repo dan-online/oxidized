@@ -12,7 +12,7 @@
 <h3 align="center">oxidized</h3>
 
   <p align="center">
-    self-hosted torrent meta-search application with a self-building, self-updating database powered by Rust + PostgreSQL
+    self-hosted torrent meta-search application<br/> with a self-building, self-updating database<br/> powered by Rust + PostgreSQL
     <!-- <br /> -->
     <!-- <a href="https://github.com/dan-online/oxidized"><strong>Explore the docs »</strong></a> -->
     <br />
