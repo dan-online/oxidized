@@ -216,6 +216,7 @@ impl TorrentService {
         mut trackers_rx: UnboundedReceiver<Vec<torrent::Model>>,
     ) {
         let queue = self.queue.clone();
+        let config = get_config();
 
         tokio::spawn(async move {
             let torrent_tracking = TorrentTrackers::new().await.unwrap();
@@ -253,13 +254,28 @@ impl TorrentService {
                                 })
                             }
 
-                            let _ = Mutation::update_torrent_trackers(
+                            let new_torrent = Mutation::update_torrent_trackers(
                                 &conn_consumer_trackers,
                                 torrent.id,
                                 trackers,
                             )
                             .await
                             .unwrap();
+
+                            if config.app.clean {
+                                if let Some(last_stale) = new_torrent.last_stale {
+                                    if last_stale.timestamp()
+                                        < (chrono::Utc::now().timestamp() - 259200)
+                                    {
+                                        let _ = Mutation::delete_torrent(
+                                            &conn_consumer_trackers,
+                                            torrent.id,
+                                        )
+                                        .await
+                                        .expect("Cannot delete torrent");
+                                    }
+                                }
+                            }
 
                             let mut queue_lock = queue_consumer_trackers.lock().await;
 

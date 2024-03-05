@@ -23,8 +23,6 @@
   </p>
 </div>
 
-
-
 <!-- TABLE OF CONTENTS -->
 <details>
   <summary>Table of Contents</summary>
@@ -36,8 +34,6 @@
     <li><a href="#disclaimer">Disclaimer</a></li>
   </ol>
 </details>
-
-
 
 <!-- ABOUT THE PROJECT -->
 ## About The Project
@@ -67,6 +63,12 @@ The easiest way to get started with Oxidized is to use the provided Docker image
 ```bash
 $ docker run -d --net host --name oxidized danonline/oxidized
 ```
+
+### Configuration
+
+Oxidized requires a configuration file to run. By default, it looks for `config.toml` in the current working directory. You can override the [default values](default.toml) using the config.toml or by setting environment variables in the format of: ``OXIDIZED_{SECTION}_{KEY}``. 
+
+For example: `OXIDIZED_DATABASE_URL`
 
 <!-- LICENSE -->
 ## License

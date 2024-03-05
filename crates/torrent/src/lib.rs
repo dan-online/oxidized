@@ -119,6 +119,15 @@ impl TorrentTrackers {
         Ok(self.trackers.clone())
     }
 
+    async fn make_request(
+        &self,
+        client: Client,
+        url: &str,
+    ) -> Result<reqwest::Response, reqwest::Error> {
+        let response = client.get(url).send().await?;
+        Ok(response)
+    }
+
     pub async fn fetch_trackers(&self) -> Result<Vec<(String, ConnectionId)>, anyhow::Error> {
         let mirrors = vec![
             "https://raw.githubusercontent.com/ngosang/trackerslist/master/trackers_best.txt",
@@ -131,7 +140,7 @@ impl TorrentTrackers {
         let mut all = vec![];
 
         for url in mirrors {
-            let response = client.get(url).send().await;
+            let response = self.make_request(client.clone(), url).await;
 
             if let Ok(response) = response {
                 let body = response.text().await.unwrap();

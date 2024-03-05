@@ -14,11 +14,13 @@ pub struct Model {
     pub added_at: DateTime,
     pub seeders: i32,
     pub leechers: i32,
+    pub trackers: Trackers,
     #[sea_orm(indexed)]
     pub last_scrape: Option<DateTime>,
     #[sea_orm(indexed)]
     pub last_tracker_scrape: Option<DateTime>,
-    pub trackers: Trackers,
+    #[sea_orm(indexed)]
+    pub last_stale: Option<DateTime>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]

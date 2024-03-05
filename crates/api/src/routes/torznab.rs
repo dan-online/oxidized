@@ -1,6 +1,5 @@
 use std::io::Cursor;
 
-use oxidized_config::get_config;
 use oxidized_entity::torrent::Model as Torrent;
 use oxidized_service::Query;
 use quick_xml::events::{BytesDecl, BytesEnd, BytesStart, BytesText, Event};
@@ -9,13 +8,13 @@ use rocket::http::uri::Host;
 use rocket::http::{ContentType, Status};
 use sea_orm_rocket::Connection;
 
+use crate::guards::apikey::ApiKeyGuard;
 use crate::Db;
 
 #[derive(FromForm, Debug)]
 pub struct TorznabQuery<'a> {
     t: Option<&'a str>,
     q: Option<String>,
-    apikey: Option<String>,
     offset: Option<u64>,
     limit: Option<u64>,
 }
@@ -211,19 +210,12 @@ fn generate_search_response(origin: &Host, torrents: Vec<Torrent>) -> anyhow::Re
 
 #[get("/api?<query..>")]
 pub async fn route<'a>(
+    _apikey: ApiKeyGuard,
     conn: Connection<'_, Db>,
     query: TorznabQuery<'_>,
     origin: &Host<'_>,
 ) -> (Status, (ContentType, String)) {
-    let config = get_config();
     let conn = conn.into_inner();
-
-    if query.apikey.unwrap_or_default() != config.auth.apikey.unwrap_or_default() {
-        return (
-            Status::Unauthorized,
-            (ContentType::Text, "Unauthorized".to_string()),
-        );
-    }
 
     match query.t.unwrap_or("search") {
         "caps" => (Status::Ok, (ContentType::XML, generate_caps_response())),

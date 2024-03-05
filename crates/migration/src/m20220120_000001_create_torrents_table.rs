@@ -40,6 +40,7 @@ impl MigrationTrait for Migration {
                     .col(ColumnDef::new(Torrents::Leechers).integer().not_null())
                     .col(ColumnDef::new(Torrents::LastScrape).timestamp())
                     .col(ColumnDef::new(Torrents::LastTrackerScrape).timestamp())
+                    .col(ColumnDef::new(Torrents::LastStale).timestamp())
                     .col(ColumnDef::new(Torrents::Trackers).json_binary())
                     .to_owned(),
             )
@@ -94,6 +95,14 @@ impl MigrationTrait for Migration {
                     .table(Torrents::Table)
                     .name("torrents_last_tracker_scrape_last_scrape_idx")
                     .to_owned(),
+            ),
+            manager.create_index(
+                sea_query::Index::create()
+                    .if_not_exists()
+                    .col(Torrents::LastStale)
+                    .table(Torrents::Table)
+                    .name("torrents_last_stale_idx")
+                    .to_owned(),
             )
         )?;
 
@@ -140,6 +149,13 @@ impl MigrationTrait for Migration {
                 sea_query::Index::drop()
                     .table(Torrents::Table)
                     .name("torrents_last_tracker_scrape_last_scrape_idx")
+                    .to_owned(),
+            ),
+            manager.drop_index(
+                sea_query::Index::drop()
+                    .if_exists()
+                    .name("torrents_last_stale_idx")
+                    .table(Torrents::Table)
                     .to_owned(),
             )
         )?;

@@ -5,6 +5,8 @@ spider = true
 update_info = true
 # update trackers for info hashes daily
 update_trackers = true
+# clean torrents with 0 seeders/leechers for more than 3 days (checks once a day)
+clean = true
 
 [auth]
 # Torznab API key

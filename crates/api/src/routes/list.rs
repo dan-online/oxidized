@@ -3,12 +3,13 @@ use rocket::serde::json::Json;
 use sea_orm_rocket::Connection;
 use serde_json::json;
 
-use crate::pool::Db;
+use crate::{guards::apikey::ApiKeyGuard, pool::Db};
 
 const DEFAULT_POSTS_PER_PAGE: u64 = 100;
 
 #[get("/list?<page>&<posts_per_page>")]
 pub async fn route(
+    _apikey: ApiKeyGuard,
     conn: Connection<'_, Db>,
     page: Option<u64>,
     posts_per_page: Option<u64>,

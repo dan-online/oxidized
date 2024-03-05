@@ -1,15 +1,10 @@
 [app]
-# watch DHT for announced info hashes and add to the queue
 spider = false
-# update info hashes in the queue that have no info
 update_info = false
-# update trackers for info hashes daily
 update_trackers = false
 
 [auth]
-# Torznab API key
 # apikey = "zaqwsxcderfvbgtyhnmjuikolp"
 
 [database]
 url = "postgres://oxidized:oxidized@postgres/oxidized"
-sqlx_logging = false

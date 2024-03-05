@@ -100,6 +100,7 @@ impl Mutation {
             files: Set(files),
             last_scrape: Set(Some(Utc::now().naive_utc())),
             last_tracker_scrape: torrent.last_tracker_scrape,
+            last_stale: torrent.last_stale,
         }
         .update(db)
         .await
@@ -132,7 +133,23 @@ impl Mutation {
             files: torrent.files,
             last_scrape: torrent.last_scrape,
             last_tracker_scrape: Set(Some(Utc::now().naive_utc())),
-            trackers: Set(Trackers(trackers)),
+            trackers: Set(Trackers(trackers.clone())),
+            // if no last_stale and seeders/leechers are 0, then set to datetime
+            // if last_stale and seeders/leechers are 0, then keep old last_stale
+            // if last_stale and seeders/leechers are not 0, then set to None
+            last_stale: if torrent.last_stale.is_not_set()
+                && best_tracker.seeders == 0
+                && best_tracker.leechers == 0
+            {
+                Set(Some(Utc::now().naive_utc()))
+            } else if torrent.last_stale.is_set()
+                && best_tracker.seeders == 0
+                && best_tracker.leechers == 0
+            {
+                torrent.last_stale
+            } else {
+                Set(None)
+            },
         }
         .update(db)
         .await

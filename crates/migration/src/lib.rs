@@ -18,6 +18,7 @@ pub enum Torrents {
     Leechers,
     LastScrape,
     LastTrackerScrape,
+    LastStale,
     Trackers,
 }
 

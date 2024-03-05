@@ -13,7 +13,7 @@ services:
       - db
     volumes:
       - ./config.toml:/app/config.toml
-    # Example environment override:
+    # Example environment override (OXIDIZED_<key seperated by "_">):
     # environment:
       #  OXIDIZED_DATABASE_URL: postgres://oxidized:oxidized@postgres/oxidized
       

@@ -5,7 +5,7 @@ use sea_orm_rocket::Connection;
 use serde::Deserialize;
 use serde_json::json;
 
-use crate::pool::Db;
+use crate::{guards::apikey::ApiKeyGuard, pool::Db};
 
 #[derive(Deserialize)]
 pub struct TorrentInput {
@@ -14,6 +14,7 @@ pub struct TorrentInput {
 
 #[post("/add", format = "application/json", data = "<torrent_input>")]
 pub async fn route(
+    _apikey: ApiKeyGuard,
     conn: Connection<'_, Db>,
     torrent_input: Json<TorrentInput>,
 ) -> Json<serde_json::Value> {

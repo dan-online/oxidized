@@ -19,6 +19,7 @@ pub struct AppSettings {
     pub spider: bool,
     pub update_info: bool,
     pub update_trackers: bool,
+    pub clean: bool,
 }
 
 #[derive(Deserialize, Clone)]
