@@ -20,7 +20,7 @@ futures = { version = "0.3" }
 futures-util = { version = "0.3" }
 rocket = { version = "0.5.0", features = ["json"] }
 rocket_dyn_templates = { version = "0.1.0", features = ["tera"] }
-tokio = "1.29.0"
+tokio = "1.36.0"
 tracing = "0.1.40"
 tracing-subscriber = "0.3.18"
 chrono = "0.4.34"
