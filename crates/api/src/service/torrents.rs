@@ -2,6 +2,7 @@ use crate::pool::Db;
 use oxidized_config::{get_config, Settings};
 use oxidized_entity::{sea_orm::DatabaseConnection, torrent, torrent::Tracker};
 use oxidized_service::{Mutation, Query};
+use oxidized_torrent::nsfw_filter::NSFWFilter;
 use oxidized_torrent::{MagneticoDTorrent, Spider, TorrentInfo, TorrentTrackers};
 use rocket::fairing::{self, Fairing};
 use rocket::{Build, Rocket};
@@ -43,7 +44,7 @@ impl Fairing for TorrentService {
 
             let spider_rx = spider.start().await;
 
-            self.spawn_consumer_spider(conn.clone(), spider_rx);
+            let _ = self.spawn_consumer_spider(conn.clone(), spider_rx).await;
         }
 
         Ok(rocket)
@@ -116,11 +117,14 @@ impl TorrentService {
         (info_rx, trackers_rx)
     }
 
-    pub fn spawn_consumer_spider(
+    pub async fn spawn_consumer_spider(
         &self,
         conn: DatabaseConnection,
         mut rx: UnboundedReceiver<MagneticoDTorrent>,
     ) {
+        let config = get_config();
+        let mut filter = NSFWFilter::new().await;
+
         tokio::spawn(async move {
             while let Some(torrent) = rx.recv().await {
                 let exists = Query::exists_torrent_by_info_hash(&conn, &torrent.info_hash)
@@ -129,6 +133,12 @@ impl TorrentService {
 
                 if exists {
                     continue;
+                }
+
+                if config.app.filter_nsfw {
+                    if filter.test(&torrent.name).await {
+                        continue;
+                    }
                 }
 
                 let size = torrent

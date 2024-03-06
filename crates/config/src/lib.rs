@@ -20,6 +20,7 @@ pub struct AppSettings {
     pub update_info: bool,
     pub update_trackers: bool,
     pub clean: bool,
+    pub filter_nsfw: bool,
 }
 
 #[derive(Deserialize, Clone)]

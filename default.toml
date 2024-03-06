@@ -7,6 +7,8 @@ update_info = true
 update_trackers = true
 # clean torrents with 0 seeders/leechers for more than 3 days (checks once a day)
 clean = true
+# filter nsfw
+filter_nsfw = true
 
 [auth]
 # Torznab API key

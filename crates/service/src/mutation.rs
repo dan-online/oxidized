@@ -1,6 +1,6 @@
 use ::oxidized_entity::torrent::{self, Entity as Torrent, Tracker, Trackers};
 use chrono::Utc;
-use sea_orm::*;
+use sea_orm::{sea_query::Expr, *};
 
 pub struct Mutation;
 
@@ -26,6 +26,16 @@ impl Mutation {
         }
 
         Torrent::insert_many(torrents)
+            .exec(db)
+            .await
+            .map_err(|e| DbErr::from(e))?;
+
+        Ok(())
+    }
+
+    pub async fn delete_torrents(db: &DbConn, ids: Vec<i32>) -> Result<(), DbErr> {
+        Torrent::delete_many()
+            .filter(Expr::col(torrent::Column::Id).is_in(ids))
             .exec(db)
             .await
             .map_err(|e| DbErr::from(e))?;
@@ -111,11 +121,14 @@ impl Mutation {
         id: i32,
         trackers: Vec<Tracker>,
     ) -> Result<torrent::Model, DbErr> {
-        let torrent: torrent::ActiveModel = Torrent::find_by_id(id)
+        let torrent = Torrent::find_by_id(id)
             .one(db)
             .await?
-            .ok_or(DbErr::Custom("Cannot find torrent.".to_owned()))
-            .map(Into::into)?;
+            .ok_or(DbErr::Custom("Cannot find torrent.".to_owned()))?;
+
+        let last_stale_set = torrent.last_stale.is_some();
+
+        let torrent: torrent::ActiveModel = torrent.into();
 
         let best_tracker = trackers
             .iter()
@@ -137,15 +150,12 @@ impl Mutation {
             // if no last_stale and seeders/leechers are 0, then set to datetime
             // if last_stale and seeders/leechers are 0, then keep old last_stale
             // if last_stale and seeders/leechers are not 0, then set to None
-            last_stale: if torrent.last_stale.is_not_set()
+            last_stale: if !last_stale_set
                 && best_tracker.seeders == 0
                 && best_tracker.leechers == 0
             {
                 Set(Some(Utc::now().naive_utc()))
-            } else if torrent.last_stale.is_set()
-                && best_tracker.seeders == 0
-                && best_tracker.leechers == 0
-            {
+            } else if last_stale_set && best_tracker.seeders == 0 && best_tracker.leechers == 0 {
                 torrent.last_stale
             } else {
                 Set(None)
@@ -153,6 +163,24 @@ impl Mutation {
         }
         .update(db)
         .await
+    }
+
+    pub async fn mark_stale(db: &DbConn) -> Result<(), DbErr> {
+        Torrent::update_many()
+            .col_expr(
+                torrent::Column::LastStale,
+                Expr::value(Some(Utc::now().naive_utc())),
+            )
+            .filter(
+                torrent::Column::LastStale
+                    .is_null()
+                    .and(torrent::Column::Seeders.eq(0))
+                    .and(torrent::Column::Leechers.eq(0)),
+            )
+            .exec(db)
+            .await?;
+
+        Ok(())
     }
 
     pub async fn delete_torrent(db: &DbConn, id: i32) -> Result<(), DbErr> {

@@ -10,16 +10,30 @@ use tokio::try_join;
 pub struct Query;
 
 #[derive(Serialize)]
+pub struct Queue {
+    pub info: u64,
+    pub trackers: u64,
+}
+
+#[derive(Serialize)]
 pub struct Stats {
     pub torrents: u64,
-    pub scraped_torrents: u64,
-    pub queued_info: u64,
-    pub queued_trackers: u64,
+    pub scraped: u64,
+    pub stale: u64,
+    pub queue: Queue,
 }
 
 impl Query {
     pub async fn find_torrent_by_id(db: &DbConn, id: i32) -> Result<Option<torrent::Model>, DbErr> {
         Torrent::find_by_id(id).one(db).await
+    }
+
+    pub async fn find_all_torrents(db: &DbConn) -> Result<Vec<torrent::Model>, DbErr> {
+        Torrent::find()
+            .select_column(torrent::Column::Name)
+            .select_column(torrent::Column::Id)
+            .all(db)
+            .await
     }
 
     pub async fn search_torrents_by_name(
@@ -99,7 +113,7 @@ impl Query {
 
         // println!("torrents_count: {:?}", torrents_count);
 
-        let (torrents, scraped_torrents, queued_info, queued_trackers) = try_join!(
+        let (torrents, scraped, queued_info, queued_trackers, stale) = try_join!(
             Torrent::find().count(db),
             Torrent::find()
                 .filter(
@@ -118,14 +132,20 @@ impl Query {
                         .or(torrent::Column::LastTrackerScrape.lt(one_day_ago)))
                     .and(torrent::Column::LastScrape.is_not_null())
                 )
+                .count(db),
+            Torrent::find()
+                .filter(torrent::Column::LastStale.is_not_null())
                 .count(db)
         )?;
 
         Ok(Stats {
             torrents,
-            scraped_torrents,
-            queued_info,
-            queued_trackers,
+            scraped,
+            queue: Queue {
+                info: queued_info,
+                trackers: queued_trackers,
+            },
+            stale,
         })
     }
 

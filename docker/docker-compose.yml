@@ -21,6 +21,7 @@ services:
     image: postgres
     container_name: oxidized-postgres
     restart: always
+    shm_size: '2gb'
     networks:
       - db
     environment:

@@ -1,4 +1,5 @@
 mod common;
+pub mod nsfw_filter;
 
 use aquatic_udp_protocol::{ConnectionId, ScrapeResponse as UDPScrapeResponse};
 use common::*;
@@ -21,7 +22,7 @@ use tokio::{
     process::Command,
     sync::mpsc::{unbounded_channel, UnboundedReceiver},
 };
-use tracing::{info, warn};
+use tracing::{error, info, warn};
 
 pub fn resolve_domain_to_ip(uri: String) -> anyhow::Result<SocketAddr> {
     let ips: Vec<_> = uri.to_socket_addrs()?.collect();
@@ -313,7 +314,13 @@ impl Spider {
                 while let Some(line) = lines.next_line().await.unwrap() {
                     let torrent: MagneticoDTorrent = serde_json::from_str(&line).unwrap();
 
-                    tx.send(torrent).unwrap();
+                    match tx.send(torrent) {
+                        Ok(_) => {}
+                        Err(e) => {
+                            error!("Cannot send torrent to channel: {:?}", e);
+                            break;
+                        }
+                    }
                 }
             });
         }

@@ -1,11 +1,11 @@
+use crate::Db;
 use oxidized_entity::{sea_orm::prelude::ConnectionTrait, sea_orm::DatabaseConnection};
+use oxidized_service::Mutation;
 use rocket::{
     fairing::{self, Fairing},
     Build, Rocket,
 };
 use sea_orm_rocket::Database;
-
-use crate::Db;
 
 pub struct MiscTasksService {}
 
@@ -21,7 +21,8 @@ impl Fairing for MiscTasksService {
     async fn on_ignite(&self, rocket: Rocket<Build>) -> fairing::Result {
         let conn = &Db::fetch(&rocket).unwrap().conn;
 
-        self.spawn_vacuum(conn.clone()).await;
+        self.spawn_vacuum(conn.clone());
+        self.spawn_mark_stale(conn.clone());
 
         Ok(rocket)
     }
@@ -41,14 +42,30 @@ impl MiscTasksService {
     /// ## Arguments
     ///
     /// * `conn` - A connection to the database
-    pub async fn spawn_vacuum(&self, conn: DatabaseConnection) {
+    pub fn spawn_vacuum(&self, conn: DatabaseConnection) {
         let mut interval = tokio::time::interval(tokio::time::Duration::from_secs(60 * 60));
 
         tokio::spawn(async move {
             loop {
                 interval.tick().await;
 
-                conn.execute_unprepared("VACUUM torrents").await.unwrap();
+                let vacuum = conn.execute_unprepared("VACUUM torrents").await;
+
+                if let Err(e) = vacuum {
+                    error!("Error vacuuming: {:?}", e);
+                }
+            }
+        });
+    }
+
+    pub fn spawn_mark_stale(&self, conn: DatabaseConnection) {
+        let mut interval = tokio::time::interval(tokio::time::Duration::from_secs(60 * 60));
+
+        tokio::spawn(async move {
+            loop {
+                interval.tick().await;
+
+                Mutation::mark_stale(&conn).await.unwrap();
             }
         });
     }
