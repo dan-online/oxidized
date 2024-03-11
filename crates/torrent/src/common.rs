@@ -1,9 +1,12 @@
 use std::{io::Cursor, net::SocketAddr, time::Duration};
 
 use anyhow::Context;
+use aquatic_http_protocol::response::Response as HTTPResponse;
+use aquatic_http_protocol::response::ScrapeResponse as HTTPScrapeResponse;
 use aquatic_udp_protocol::{
-    ConnectRequest, ConnectionId, InfoHash as UDPInfoHash, Request, Response as UDPResponse,
-    ScrapeRequest, ScrapeResponse as ScrapeUDPResponse, TransactionId,
+    ConnectRequest, ConnectionId, InfoHash as UDPInfoHash, Request as UDPRequest,
+    Response as UDPResponse, ScrapeRequest as UDPScrapeRequest,
+    ScrapeResponse as ScrapeUDPResponse, TransactionId,
 };
 use tokio::net::UdpSocket;
 
@@ -11,7 +14,7 @@ pub async fn connect_udp(
     socket: &UdpSocket,
     tracker_addr: SocketAddr,
 ) -> anyhow::Result<ConnectionId> {
-    let request = Request::Connect(ConnectRequest {
+    let request = UDPRequest::Connect(ConnectRequest {
         transaction_id: TransactionId(0),
     });
 
@@ -30,7 +33,7 @@ pub async fn scrape_udp(
     connection_id: ConnectionId,
     info_hashes: Vec<[u8; 20]>,
 ) -> anyhow::Result<ScrapeUDPResponse> {
-    let request = Request::Scrape(ScrapeRequest {
+    let request = UDPRequest::Scrape(UDPScrapeRequest {
         connection_id,
         transaction_id: TransactionId(0),
         info_hashes: info_hashes
@@ -51,9 +54,10 @@ pub async fn scrape_udp(
 pub async fn request_and_response_udp(
     socket: &UdpSocket,
     tracker_addr: SocketAddr,
-    request: Request,
+    request: UDPRequest,
 ) -> anyhow::Result<UDPResponse> {
-    let mut buffer = [0u8; 8192];
+    // 128kb should be enough for any request
+    let mut buffer = [0u8; 128 * 1024];
 
     {
         let mut buffer = Cursor::new(&mut buffer[..]);
@@ -70,17 +74,41 @@ pub async fn request_and_response_udp(
     }
 
     {
-        let (bytes_read, _) =
-            match tokio::time::timeout(Duration::from_secs(5), socket.recv_from(&mut buffer))
-                .await?
-            {
-                Ok(a) => Ok(a),
-                Err(e) => {
-                    println!("Error: {:?}", e);
-                    Err(anyhow::anyhow!("timeout"))
-                }
-            }?;
+        let (bytes_read, _addr) =
+            tokio::time::timeout(Duration::from_secs(5), socket.recv_from(&mut buffer)).await??;
 
         UDPResponse::from_bytes(&buffer[..bytes_read], true).with_context(|| "parse response")
+    }
+}
+
+pub async fn request_and_response_http(
+    tracker_uri: String,
+    info_hashes: Vec<[u8; 20]>,
+) -> anyhow::Result<HTTPScrapeResponse> {
+    let mut url = format!("{}/scrape", tracker_uri,);
+
+    for (i, info_hash) in info_hashes.iter().enumerate() {
+        url.push_str(&format!(
+            "{}info_hash={}",
+            if i == 0 { "?" } else { "&" },
+            url::form_urlencoded::byte_serialize(info_hash.to_vec().as_slice()).collect::<String>()
+        ));
+    }
+
+    let response = reqwest::Client::new()
+        .get(&url)
+        .timeout(Duration::from_secs(5))
+        .send()
+        .await?;
+
+    let response = HTTPResponse::from_bytes(&response.bytes().await?);
+
+    if let Ok(HTTPResponse::Scrape(response)) = response {
+        Ok(response)
+    } else {
+        Err(anyhow::anyhow!(
+            "not scrape response: {:?}",
+            response.unwrap_err()
+        ))
     }
 }

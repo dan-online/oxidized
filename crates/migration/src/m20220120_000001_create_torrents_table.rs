@@ -1,14 +1,64 @@
 use rocket::tokio::try_join;
-use sea_orm_migration::prelude::*;
+use sea_orm_migration::{prelude::*, sea_query::extension::postgres::Type};
 
-use crate::Torrents;
+use crate::{Stats, Torrents};
 
 #[derive(DeriveMigrationName)]
 pub struct Migration;
 
+#[derive(DeriveIden)]
+pub enum StatType {
+    #[sea_orm(iden = "stattype")]
+    Enum,
+    #[sea_orm(iden = "total_torrents")]
+    TotalTorrents,
+    #[sea_orm(iden = "scraped_torrents")]
+    ScrapedTorrents,
+    #[sea_orm(iden = "queue_torrent_info")]
+    QueueInfo,
+    #[sea_orm(iden = "queue_torrent_trackers")]
+    QueueTrackers,
+    #[sea_orm(iden = "stale_torrents")]
+    Stale,
+}
+
 #[async_trait::async_trait]
 impl MigrationTrait for Migration {
     async fn up(&self, manager: &SchemaManager) -> Result<(), DbErr> {
+        manager
+            .create_type(
+                Type::create()
+                    .as_enum(StatType::Enum)
+                    .values([
+                        StatType::TotalTorrents,
+                        StatType::ScrapedTorrents,
+                        StatType::QueueInfo,
+                        StatType::QueueTrackers,
+                        StatType::Stale,
+                    ])
+                    .to_owned(),
+            )
+            .await?;
+
+        manager
+            .create_table(
+                Table::create()
+                    .table(Stats::Table)
+                    .if_not_exists()
+                    .col(
+                        ColumnDef::new(Stats::Id)
+                            .integer()
+                            .not_null()
+                            .auto_increment()
+                            .primary_key(),
+                    )
+                    .col(ColumnDef::new(Stats::Name).string().not_null())
+                    .col(ColumnDef::new(Stats::Value).integer().not_null())
+                    .col(ColumnDef::new(Stats::LastUpdated).timestamp().not_null())
+                    .to_owned(),
+            )
+            .await?;
+
         manager
             .create_table(
                 Table::create()

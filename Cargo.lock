@@ -3273,12 +3273,14 @@ dependencies = [
  "futures-util",
  "hex 0.4.3",
  "librqbit",
+ "rand",
  "reqwest",
  "serde",
  "serde_derive",
  "serde_json",
  "tokio",
  "tracing",
+ "url",
 ]
 
 [[package]]

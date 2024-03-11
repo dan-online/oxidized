@@ -58,10 +58,15 @@ Oxidized aims to provide a straightforward and efficient solution for anyone to 
 
 The easiest way to get started with Oxidized is to use the provided Docker image
 
-> This assumes you have a Postgres database running on the same host as the oxidized container. For more complex setups, check out [docker-compose.yml](docker/docker-compose.yml)
+> A sample [docker-compose.yml](docker/docker-compose.yml) is also provided
 
 ```bash
-$ docker run -d --net host --name oxidized danonline/oxidized
+# create a network
+$ docker network create oxidized
+
+$ docker run -d --net oxidized --name postgresql -e POSTGRES_PASSWORD=oxidized -e POSTGRES_DB=oxidized postgres:alpine
+
+$ docker run -d --net oxidized -e OXIDIZED_DATABASE_URL=postgres://postgres:oxidized@postgresql/oxidized --name oxidized danonline/oxidized
 ```
 
 ### Configuration

@@ -22,6 +22,15 @@ pub enum Torrents {
     Trackers,
 }
 
+#[derive(DeriveIden)]
+pub enum Stats {
+    Table,
+    Id,
+    Name,
+    Value,
+    LastUpdated,
+}
+
 #[async_trait::async_trait]
 impl MigratorTrait for Migrator {
     fn migrations() -> Vec<Box<dyn MigrationTrait>> {

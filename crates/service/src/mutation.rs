@@ -1,3 +1,4 @@
+use ::oxidized_entity::stats::Entity as Stats;
 use ::oxidized_entity::torrent::{self, Entity as Torrent, Tracker, Trackers};
 use chrono::Utc;
 use sea_orm::{sea_query::Expr, *};
@@ -5,9 +6,48 @@ use sea_orm::{sea_query::Expr, *};
 pub struct Mutation;
 
 impl Mutation {
+    pub async fn update_stat(
+        db: &DbConn,
+        name: &str,
+        action: &str,
+        value: Option<i32>,
+    ) -> Result<(), DbErr> {
+        // TODO: Surely sea-orm has a better way to do this?
+        match action {
+            "inc" => {
+                let sql = format!(
+                    "UPDATE {} SET value = value + {} WHERE name = '{}'",
+                    Stats.table_name(),
+                    value.unwrap_or(1),
+                    name
+                );
+
+                db.execute_unprepared(&sql)
+                    .await
+                    .map_err(|e| DbErr::from(e))
+            }
+            "dec" => {
+                let sql = format!(
+                    "UPDATE {} SET value = value - {} WHERE name = '{}'",
+                    Stats.table_name(),
+                    value.unwrap_or(1),
+                    name
+                );
+
+                db.execute_unprepared(&sql)
+                    .await
+                    .map_err(|e| DbErr::from(e))
+            }
+            _ => {
+                return Err(DbErr::Custom("Invalid action.".to_owned()));
+            }
+        }?;
+
+        Ok(())
+    }
+
     pub async fn create_torrents(db: &DbConn, info_hashes: Vec<String>) -> Result<(), DbErr> {
         let mut torrents = Vec::new();
-
         // bulk insert
         for info_hash in info_hashes {
             let torrent = torrent::ActiveModel {
@@ -30,15 +70,20 @@ impl Mutation {
             .await
             .map_err(|e| DbErr::from(e))?;
 
+        Mutation::update_stat(db, "total_torrents", "inc", None).await?;
+        Mutation::update_stat(db, "queue_torrent_info", "inc", None).await?;
+
         Ok(())
     }
 
     pub async fn delete_torrents(db: &DbConn, ids: Vec<i32>) -> Result<(), DbErr> {
-        Torrent::delete_many()
+        let res = Torrent::delete_many()
             .filter(Expr::col(torrent::Column::Id).is_in(ids))
             .exec(db)
             .await
             .map_err(|e| DbErr::from(e))?;
+
+        Mutation::update_stat(db, "total_torrents", "dec", Some(res.rows_affected as i32)).await?;
 
         Ok(())
     }
@@ -47,7 +92,7 @@ impl Mutation {
         db: &DbConn,
         info_hash: String,
     ) -> Result<torrent::ActiveModel, DbErr> {
-        torrent::ActiveModel {
+        let torrent = torrent::ActiveModel {
             name: Set(None),
             info_hash: Set(info_hash),
             size: Set(0),
@@ -59,7 +104,12 @@ impl Mutation {
             ..Default::default()
         }
         .save(db)
-        .await
+        .await?;
+
+        Mutation::update_stat(db, "total_torrents", "inc", None).await?;
+        Mutation::update_stat(db, "queue_torrent_info", "inc", None).await?;
+
+        Ok(torrent)
     }
 
     pub async fn create_torrent_internal(
@@ -69,7 +119,7 @@ impl Mutation {
         size: i32,
         files: Vec<String>,
     ) -> Result<torrent::ActiveModel, DbErr> {
-        torrent::ActiveModel {
+        let torrent = torrent::ActiveModel {
             name: Set(Some(name)),
             info_hash: Set(info_hash),
             size: Set(size),
@@ -82,7 +132,12 @@ impl Mutation {
             ..Default::default()
         }
         .save(db)
-        .await
+        .await?;
+
+        Mutation::update_stat(db, "total_torrents", "inc", None).await?;
+        Mutation::update_stat(db, "queue_torrent_trackers", "inc", None).await?;
+
+        Ok(torrent)
     }
 
     pub async fn update_torrent_info(
@@ -98,7 +153,7 @@ impl Mutation {
             .ok_or(DbErr::Custom("Cannot find torrent.".to_owned()))
             .map(Into::into)?;
 
-        torrent::ActiveModel {
+        let torrent = torrent::ActiveModel {
             id: torrent.id,
             info_hash: torrent.info_hash,
             added_at: torrent.added_at,
@@ -113,7 +168,12 @@ impl Mutation {
             last_stale: torrent.last_stale,
         }
         .update(db)
-        .await
+        .await?;
+
+        Mutation::update_stat(db, "queue_torrent_info", "dec", None).await?;
+        Mutation::update_stat(db, "queue_torrent_trackers", "inc", None).await?;
+
+        Ok(torrent)
     }
 
     pub async fn update_torrent_trackers(
@@ -135,7 +195,7 @@ impl Mutation {
             .max_by(|a, b| a.seeders.cmp(&b.seeders))
             .unwrap();
 
-        torrent::ActiveModel {
+        let torrent = torrent::ActiveModel {
             id: torrent.id,
             info_hash: torrent.info_hash,
             added_at: torrent.added_at,
@@ -162,11 +222,15 @@ impl Mutation {
             },
         }
         .update(db)
-        .await
+        .await?;
+
+        Mutation::update_stat(db, "queue_torrent_trackers", "dec", None).await?;
+
+        Ok(torrent)
     }
 
     pub async fn mark_stale(db: &DbConn) -> Result<(), DbErr> {
-        Torrent::update_many()
+        let res = Torrent::update_many()
             .col_expr(
                 torrent::Column::LastStale,
                 Expr::value(Some(Utc::now().naive_utc())),
@@ -179,6 +243,27 @@ impl Mutation {
             )
             .exec(db)
             .await?;
+
+        Mutation::update_stat(db, "stale_torrents", "inc", Some(res.rows_affected as i32)).await?;
+
+        Ok(())
+    }
+
+    pub async fn delete_stale(db: &DbConn) -> Result<(), DbErr> {
+        let now = Utc::now().naive_utc();
+        let three_days_ago = now - chrono::Duration::days(9);
+
+        let res = Torrent::delete_many()
+            .filter(
+                torrent::Column::LastStale
+                    .is_not_null()
+                    .and(torrent::Column::LastStale.lt(three_days_ago)),
+            )
+            .exec(db)
+            .await?;
+
+        Mutation::update_stat(db, "total_torrents", "dec", Some(res.rows_affected as i32)).await?;
+        Mutation::update_stat(db, "stale_torrents", "dec", Some(res.rows_affected as i32)).await?;
 
         Ok(())
     }
@@ -195,6 +280,8 @@ impl Mutation {
                 .delete(db)
                 .await
                 .map_err(|e| DbErr::from(e))?;
+
+            Mutation::update_stat(db, "total_torrents", "dec", Some(1)).await?;
         }
 
         Ok(())

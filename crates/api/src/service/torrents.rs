@@ -2,8 +2,10 @@ use crate::pool::Db;
 use oxidized_config::{get_config, Settings};
 use oxidized_entity::{sea_orm::DatabaseConnection, torrent, torrent::Tracker};
 use oxidized_service::{Mutation, Query};
+use oxidized_torrent::info::TorrentInfo;
 use oxidized_torrent::nsfw_filter::NSFWFilter;
-use oxidized_torrent::{MagneticoDTorrent, Spider, TorrentInfo, TorrentTrackers};
+use oxidized_torrent::spider::{MagneticoDTorrent, Spider};
+use oxidized_torrent::trackers::TorrentTrackers;
 use rocket::fairing::{self, Fairing};
 use rocket::{Build, Rocket};
 use sea_orm_rocket::Database;
@@ -229,70 +231,79 @@ impl TorrentService {
         let config = get_config();
 
         tokio::spawn(async move {
-            let torrent_tracking = TorrentTrackers::new().await.unwrap();
+            let mut torrent_tracking = TorrentTrackers::new().await.unwrap();
 
             while let Some(torrents_chunk) = trackers_rx.recv().await {
-                let mut torrent_tracking = torrent_tracking.clone();
                 let conn_consumer_trackers = conn.clone();
                 let queue_consumer_trackers = queue.clone();
 
-                tokio::spawn(async move {
-                    let tracker_info = torrent_tracking
-                        .get_torrent_trackers(
-                            torrents_chunk
-                                .iter()
-                                .map(|torrent| torrent.info_hash.clone())
-                                .collect(),
-                        )
-                        .await;
+                // let start = std::time::Instant::now();
+                let tracker_info = torrent_tracking
+                    .get_torrent_trackers(
+                        torrents_chunk
+                            .iter()
+                            .map(|torrent| torrent.info_hash.clone())
+                            .collect(),
+                    )
+                    .await;
 
-                    if let Ok(tracker_info) = tracker_info {
-                        for i in 0..torrents_chunk.len() {
-                            let mut trackers: Vec<Tracker> = vec![];
+                if let Ok(tracker_info) = tracker_info {
+                    // println!(
+                    //     "Scrape took: {}ms with {} trackers",
+                    //     start.elapsed().as_millis(),
+                    //     tracker_info.len()
+                    // );
 
-                            let torrent = &torrents_chunk[i];
-                            let tracker_info = &tracker_info;
+                    for torrent in torrents_chunk {
+                        let mut trackers: Vec<Tracker> = vec![];
 
-                            for (tracker, info) in tracker_info {
-                                let torrent_stats = info.torrent_stats[i].clone();
+                        let tracker_info = &tracker_info;
 
-                                trackers.push(Tracker {
-                                    last_scrape: chrono::Utc::now().naive_utc(),
-                                    url: tracker.to_string(),
-                                    seeders: torrent_stats.seeders.0,
-                                    leechers: torrent_stats.leechers.0,
-                                })
+                        for (tracker, scrape) in tracker_info {
+                            let stats = scrape.stats.get(torrent.info_hash.to_uppercase().as_str());
+
+                            if stats.is_none() {
+                                continue;
                             }
 
-                            let new_torrent = Mutation::update_torrent_trackers(
-                                &conn_consumer_trackers,
-                                torrent.id,
-                                trackers,
-                            )
-                            .await
-                            .unwrap();
+                            let stats = stats.unwrap();
 
-                            if config.app.clean {
-                                if let Some(last_stale) = new_torrent.last_stale {
-                                    if last_stale.timestamp()
-                                        < (chrono::Utc::now().timestamp() - 259200)
-                                    {
-                                        let _ = Mutation::delete_torrent(
-                                            &conn_consumer_trackers,
-                                            torrent.id,
-                                        )
-                                        .await
-                                        .expect("Cannot delete torrent");
-                                    }
+                            trackers.push(Tracker {
+                                last_scrape: chrono::Utc::now().naive_utc(),
+                                url: tracker.to_string(),
+                                seeders: stats.seeders,
+                                leechers: stats.leechers,
+                            })
+                        }
+
+                        let new_torrent = Mutation::update_torrent_trackers(
+                            &conn_consumer_trackers,
+                            torrent.id,
+                            trackers,
+                        )
+                        .await
+                        .unwrap();
+
+                        if config.app.clean {
+                            if let Some(last_stale) = new_torrent.last_stale {
+                                if last_stale.timestamp()
+                                    < (chrono::Utc::now().timestamp() - 259200)
+                                {
+                                    let _ = Mutation::delete_torrent(
+                                        &conn_consumer_trackers,
+                                        torrent.id,
+                                    )
+                                    .await
+                                    .expect("Cannot delete torrent");
                                 }
                             }
-
-                            let mut queue_lock = queue_consumer_trackers.lock().await;
-
-                            queue_lock.remove(&torrent.id);
                         }
+
+                        let mut queue_lock = queue_consumer_trackers.lock().await;
+
+                        queue_lock.remove(&torrent.id);
                     }
-                });
+                }
             }
         });
     }
