@@ -36,15 +36,12 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
       
-      - name: Update Dockerhub readme
-        uses: christian-korneck/update-container-description-action@v1
-        env:
-          DOCKER_USER: ${{ secrets.DOCKERHUB_USERNAME }}
-          DOCKER_PASS: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: Docker Hub Description
+        uses: peter-evans/dockerhub-description@v4
         with:
-          destination_container_repo: danonline/oxidized
-          provider: dockerhub
-          short_description: 'self-hosted torrent meta-search application'
-          
-          readme_file: 'README.md'
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+          repository: danonline/oxidized
+          enable-url-completion: true
+          short-description: 'self-hosted torrent meta-search application'
   
