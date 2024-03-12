@@ -33,6 +33,8 @@ jobs:
         with:
           push: true
           tags: danonline/oxidized:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
       
       - name: Update Dockerhub readme
         uses: christian-korneck/update-container-description-action@v1
