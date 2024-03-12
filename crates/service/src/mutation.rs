@@ -251,7 +251,7 @@ impl Mutation {
 
     pub async fn delete_stale(db: &DbConn) -> Result<(), DbErr> {
         let now = Utc::now().naive_utc();
-        let three_days_ago = now - chrono::Duration::days(9);
+        let three_days_ago = now - chrono::Duration::try_days(9).unwrap();
 
         let res = Torrent::delete_many()
             .filter(

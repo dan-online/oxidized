@@ -38,7 +38,7 @@
 <!-- ABOUT THE PROJECT -->
 ## About The Project
 
-Oxidized is a torrent meta-search application designed to simplify and enhance your torrent searching experience. Built with Rust + [Rocket](https://rocket.rs), oxidized delivers a reliable and responsive API for seamless integration. Utilizing PostgreSQL for data management, Oxidized ensures efficient storage and retrieval of torrent information.
+oxidized is a torrent meta-search application designed to simplify and enhance your torrent searching experience. Built with Rust + [Rocket](https://rocket.rs), oxidized delivers a reliable and responsive API for seamless integration. Utilizing PostgreSQL for data management, oxidized ensures efficient storage and retrieval of torrent information.
 
 ### Features
 
@@ -47,31 +47,34 @@ Oxidized is a torrent meta-search application designed to simplify and enhance y
 - Self-building, self-updating database ([Spider](https://github.com/boramalper/magnetico/))
     - Watches the DHT (Distributed Hash Table) for new torrents and automatically adds them to the database
     - 7680 indexed torrents/hr leads to 180k+ torrents/day
+    - Cleans stale torrents (no seeders/leechers for 3 days)
 - Torznab API
-    - Allows for integration with popular torrent clients such as Sonarr, Radarr, and Lidarr
+    - Allows for integration with popular media management clients such as Sonarr, Radarr, and Lidarr
 
-Oxidized aims to provide a straightforward and efficient solution for anyone to index torrents, without unnecessary frills or complexities.
+oxidized aims to provide a straightforward and efficient solution for anyone to index torrents, without unnecessary frills or complexities.
 
 ## Getting Started
 
 ### Docker
 
-The easiest way to get started with Oxidized is to use the provided Docker image
+The easiest way to get started with oxidized is to use the provided Docker image
 
-> A sample [docker-compose.yml](docker/docker-compose.yml) is also provided
+> Here is a sample [docker-compose.yml](docker/docker-compose.yml)
 
 ```bash
 # create a network
 $ docker network create oxidized
 
-$ docker run -d --net oxidized --name postgresql -e POSTGRES_PASSWORD=oxidized -e POSTGRES_DB=oxidized postgres:alpine
+# postgres database
+$ docker run -d --net oxidized --name postgres -e POSTGRES_PASSWORD=oxidized -e POSTGRES_DB=oxidized postgres:alpine
 
+# oxidized
 $ docker run -d --net oxidized -e OXIDIZED_DATABASE_URL=postgres://postgres:oxidized@postgresql/oxidized --name oxidized danonline/oxidized
 ```
 
 ### Configuration
 
-Oxidized requires a configuration file to run. By default, it looks for `config.toml` in the current working directory. You can override the [default values](default.toml) using the config.toml or by setting environment variables in the format of: ``OXIDIZED_{SECTION}_{KEY}``. 
+oxidized requires a configuration file to run. By default, it looks for `config.toml` in the current working directory. You can override the [default values](default.toml) using the config.toml or by setting environment variables in the format of: ``OXIDIZED_{SECTION}_{KEY}``. 
 
 For example: `OXIDIZED_DATABASE_URL`
 

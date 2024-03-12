@@ -1,4 +1,5 @@
 use aquatic_udp_protocol::ScrapeResponse as UDPScrapeResponse;
+use oxidized_config::get_config;
 use reqwest::Client;
 use std::{
     collections::{BTreeMap, HashMap},
@@ -61,6 +62,17 @@ impl TorrentTrackers {
     }
 
     pub async fn get_trackers(&mut self) -> Result<Vec<TorrentTracker>, anyhow::Error> {
+        let config = get_config();
+
+        if let Some(trackers) = config.app.trackers {
+            return Ok(trackers
+                .iter()
+                .map(|tracker| TorrentTracker {
+                    uri: tracker.clone(),
+                })
+                .collect());
+        }
+
         if self.last_updated_trackers.elapsed().as_secs() > 60 || self.trackers.is_empty() {
             let trackers = self.fetch_trackers().await?;
 

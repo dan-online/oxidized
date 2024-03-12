@@ -206,8 +206,8 @@ impl TorrentService {
 
                     // 30 days or never scraped
                     if torrent.last_scrape.is_none()
-                        || torrent.last_scrape.unwrap().timestamp()
-                            < (chrono::Utc::now().timestamp() - 2592000)
+                        || torrent.last_scrape.unwrap().and_utc()
+                            < (chrono::Utc::now() - chrono::Duration::try_days(30).unwrap())
                     {
                         let _ = Mutation::delete_torrent(&conn, torrent.id)
                             .await
@@ -254,6 +254,10 @@ impl TorrentService {
                     //     tracker_info.len()
                     // );
 
+                    if tracker_info.is_empty() {
+                        continue;
+                    }
+
                     for torrent in torrents_chunk {
                         let mut trackers: Vec<Tracker> = vec![];
 
@@ -286,8 +290,8 @@ impl TorrentService {
 
                         if config.app.clean {
                             if let Some(last_stale) = new_torrent.last_stale {
-                                if last_stale.timestamp()
-                                    < (chrono::Utc::now().timestamp() - 259200)
+                                if last_stale.and_utc()
+                                    < (chrono::Utc::now() - chrono::Duration::try_days(3).unwrap())
                                 {
                                     let _ = Mutation::delete_torrent(
                                         &conn_consumer_trackers,

@@ -1,14 +1,21 @@
 [app]
 # watch DHT for announced info hashes and add to the queue
 spider = true
+
 # update info hashes in the queue that have no info
 update_info = true
+
 # update trackers for info hashes daily
 update_trackers = true
+
 # clean torrents with 0 seeders/leechers for more than 3 days (checks once a day)
 clean = true
+
 # filter nsfw
 filter_nsfw = true
+
+# custom trackers
+# trackers = ['udp://explodie.org:6969/announce']
 
 [auth]
 # Torznab API key

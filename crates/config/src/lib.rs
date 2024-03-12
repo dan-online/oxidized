@@ -21,6 +21,7 @@ pub struct AppSettings {
     pub update_trackers: bool,
     pub clean: bool,
     pub filter_nsfw: bool,
+    pub trackers: Option<Vec<String>>,
 }
 
 #[derive(Deserialize, Clone)]

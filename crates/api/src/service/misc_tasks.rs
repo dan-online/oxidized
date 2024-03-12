@@ -33,20 +33,10 @@ impl Fairing for MiscTasksService {
     }
 }
 impl MiscTasksService {
-    /// Create a new instance of the `MiscTasksService`
-    ///
-    /// ## Returns
-    ///
-    /// A new instance of the `MiscTasksService`
     pub fn new() -> Self {
         Self {}
     }
 
-    /// Vacuum the database every hour
-    ///
-    /// ## Arguments
-    ///
-    /// * `conn` - A connection to the database
     pub fn spawn_vacuum(&self, conn: DatabaseConnection) {
         let mut interval = tokio::time::interval(tokio::time::Duration::from_secs(60 * 60));
 
@@ -54,7 +44,7 @@ impl MiscTasksService {
             loop {
                 interval.tick().await;
 
-                let vacuum = conn.execute_unprepared("VACUUM torrents").await;
+                let vacuum = conn.execute_unprepared("VACUUM FULL").await;
 
                 if let Err(e) = vacuum {
                     error!("Error vacuuming: {:?}", e);

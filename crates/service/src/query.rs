@@ -92,14 +92,11 @@ impl Query {
             stale: 0,
         };
 
-        let rows = Stats::find().all(db).await?;
+        let mut rows = Stats::find().all(db).await?;
 
-        // reindex if last updated is older than 10s
-        let reindex = rows
-            .iter()
-            .any(|row| row.last_updated.timestamp() < Utc::now().timestamp() - 120);
-
-        println!("reindex: {}", reindex);
+        let reindex = rows.iter().any(|row| {
+            row.last_updated.and_utc() < (Utc::now() - chrono::Duration::try_seconds(10).unwrap())
+        });
 
         if rows.is_empty() {
             for stat in stats::StatType::iter() {
@@ -110,11 +107,13 @@ impl Query {
                     ..Default::default()
                 };
 
-                row.insert(db).await?;
+                let row_model = row.insert(db).await?;
+
+                rows.push(row_model);
             }
         }
 
-        if reindex || rows.is_empty() {
+        if reindex {
             let raw_stats = Query::get_raw_stats(db).await?;
 
             for row in rows {
@@ -139,11 +138,11 @@ impl Query {
 
         for row in rows {
             match row.name {
-                stats::StatType::TotalTorrents => stats.torrents = row.value as u64,
-                stats::StatType::ScrapedTorrents => stats.scraped = row.value as u64,
-                stats::StatType::QueueInfo => stats.queue.info = row.value as u64,
-                stats::StatType::QueueTrackers => stats.queue.trackers = row.value as u64,
-                stats::StatType::Stale => stats.stale = row.value as u64,
+                stats::StatType::TotalTorrents => stats.torrents = (row.value as u64).max(0),
+                stats::StatType::ScrapedTorrents => stats.scraped = (row.value as u64).max(0),
+                stats::StatType::QueueInfo => stats.queue.info = (row.value as u64).max(0),
+                stats::StatType::QueueTrackers => stats.queue.trackers = (row.value as u64).max(0),
+                stats::StatType::Stale => stats.stale = (row.value as u64).max(0),
             }
         }
 
@@ -153,7 +152,7 @@ impl Query {
     pub async fn get_raw_stats(db: &DbConn) -> Result<OutputStats, DbErr> {
         let now = Utc::now().naive_utc();
 
-        let three_days_ago = now - chrono::Duration::days(3);
+        let three_days_ago = now - chrono::Duration::try_days(3).unwrap();
 
         let (torrents, scraped, queued_info, queued_trackers, stale) = try_join!(
             Torrent::find().count(db),
@@ -213,7 +212,7 @@ impl Query {
         ignore: Option<Vec<i32>>,
     ) -> Result<Vec<torrent::Model>, DbErr> {
         let now = Utc::now().naive_utc();
-        let three_days_ago = now - chrono::Duration::days(3);
+        let three_days_ago = now - chrono::Duration::try_days(3).unwrap();
 
         let mut torrents = Torrent::find()
             .filter(
@@ -223,9 +222,9 @@ impl Query {
                         torrent::Column::LastTrackerScrape
                             .is_null()
                             .or(torrent::Column::LastTrackerScrape.lt(three_days_ago)),
-                    ),
+                    )
+                    .and(torrent::Column::LastScrape.is_not_null()),
             )
-            .filter(torrent::Column::LastScrape.is_not_null())
             .order_by_asc(torrent::Column::LastTrackerScrape)
             .limit(50)
             .all(db)

@@ -21,6 +21,7 @@ serde_json = "1.0.114"
 tokio = { version = "1.36.0", features = ["macros", "process"] }
 tracing = "0.1.40"
 url = "2.5.0"
+oxidized-config = { path = "../config" }
 
 [lib]
 path = "src/lib.rs"
