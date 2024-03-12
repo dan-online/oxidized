@@ -35,13 +35,3 @@ jobs:
           tags: danonline/oxidized:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
-      
-      - name: Docker Hub Description
-        uses: peter-evans/dockerhub-description@v4
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-          repository: danonline/oxidized
-          enable-url-completion: true
-          short-description: 'self-hosted torrent meta-search application'
-  
