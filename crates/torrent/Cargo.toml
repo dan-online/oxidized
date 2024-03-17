@@ -6,7 +6,7 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-anyhow = "1.0.80"
+anyhow = "1.0.81"
 aquatic_http = "0.8.0"
 aquatic_http_protocol = "0.8.0"
 aquatic_udp_protocol = "0.8.0"
