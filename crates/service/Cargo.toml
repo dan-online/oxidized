@@ -6,7 +6,7 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-chrono = { version = "0.4.37", features = ["clock"] }
+chrono = { version = "0.4.38", features = ["clock"] }
 oxidized-entity = { path = "../entity" }
 serde = "1.0.197"
 tokio = "1.37.0"
