@@ -34,7 +34,7 @@ RUN rm -rf target/release/oxidized*
 RUN cargo build --locked --release
 
 # Run application
-FROM ubuntu:jammy
+FROM ubuntu:noble
 
 WORKDIR /app
 
