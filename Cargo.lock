@@ -2427,11 +2427,12 @@ dependencies = [
 
 [[package]]
 name = "librqbit"
-version = "5.4.1"
+version = "5.6.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0d6573d59ab4e331ca001d10b247bd31fc7c1b9dc0fc7e4276d5f9cf96057431"
+checksum = "a1652e672a67615c07f24559f63caf1c72e32d635914f8631398d5a5451e9d28"
 dependencies = [
  "anyhow",
+ "async-stream",
  "axum",
  "backoff",
  "base64 0.21.7",
@@ -2451,11 +2452,12 @@ dependencies = [
  "librqbit-dht",
  "librqbit-peer-protocol",
  "librqbit-sha1-wrapper",
+ "librqbit-tracker-comms",
  "librqbit-upnp",
  "parking_lot",
  "rand",
  "regex",
- "reqwest 0.11.26",
+ "reqwest 0.12.4",
  "rlimit 0.10.1",
  "serde",
  "serde_json",
@@ -2475,9 +2477,9 @@ dependencies = [
 
 [[package]]
 name = "librqbit-bencode"
-version = "2.2.1"
+version = "2.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "25214563468dda753fbae62f5ed3b1def14219f2faa416f76f7a449efb8a8092"
+checksum = "78092f43d8b9680a995e69c445f9f9cc031a41b81405699783628effec5af942"
 dependencies = [
  "anyhow",
  "librqbit-buffers",
@@ -2488,9 +2490,9 @@ dependencies = [
 
 [[package]]
 name = "librqbit-buffers"
-version = "2.2.1"
+version = "3.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "378dc12b4994dec9edf0558e39144972167569458f837dc0c67ddeb044ff9a00"
+checksum = "05c45b5e7920bb31cc8081592b41890f0e1dec5a89ae3b2b72ae393d1a79183e"
 dependencies = [
  "librqbit-clone-to-owned",
  "serde",
@@ -2504,9 +2506,9 @@ checksum = "c33f149bc6cef41a9f24ad43ece20c87e0617fc88affa01d95850eb68210daac"
 
 [[package]]
 name = "librqbit-core"
-version = "3.5.0"
+version = "3.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d055eac3cd062d4b7728feccb45495682b834305bf234f275440b32814276a65"
+checksum = "234917ee2a5baaa05e960d4566aacc4c57fa6412b4c3db1dcaf4a76719bad96d"
 dependencies = [
  "anyhow",
  "directories",
@@ -2526,9 +2528,9 @@ dependencies = [
 
 [[package]]
 name = "librqbit-dht"
-version = "5.0.0"
+version = "5.0.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e5544e3673957ea9df71a4c74a67b2c75242ccbb3bcc19dcae51672799d5dd1f"
+checksum = "0ed1959a190afe4d99bb403c5724ebb8233701f907c3c4919982ba6a7573055a"
 dependencies = [
  "anyhow",
  "backoff",
@@ -2553,9 +2555,9 @@ dependencies = [
 
 [[package]]
 name = "librqbit-peer-protocol"
-version = "3.4.0"
+version = "3.5.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a1b7d7c9ab2821b0be718068fe79a4cf5356523b406e4135043313c76a780fc3"
+checksum = "d643bfbed57aea59156102e59d5f3331fd537ad567000282d8c61e0b40837d55"
 dependencies = [
  "anyhow",
  "bincode",
@@ -2570,11 +2572,33 @@ dependencies = [
 
 [[package]]
 name = "librqbit-sha1-wrapper"
-version = "2.2.1"
+version = "3.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "45016d84e0f1751ad9b645378117adf648dd6649e1b371a398862cd6a10356fe"
+checksum = "c7ffaa0b9781d0a9a569ee78f7e021d0e285911e194b6d3075eed1b8f8e201a7"
 dependencies = [
  "crypto-hash",
+]
+
+[[package]]
+name = "librqbit-tracker-comms"
+version = "1.0.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4df6cb8818eac7c9fc2ad11c3d0638d861000b53b1c88694f05c1a5396cc6cef"
+dependencies = [
+ "anyhow",
+ "async-stream",
+ "byteorder",
+ "futures",
+ "librqbit-bencode",
+ "librqbit-buffers",
+ "librqbit-core",
+ "rand",
+ "reqwest 0.12.4",
+ "serde",
+ "tokio",
+ "tracing",
+ "url",
+ "urlencoding",
 ]
 
 [[package]]
