@@ -61,9 +61,9 @@ fn generate_caps_response() -> String {
 
     let mut category = BytesStart::new("category");
 
-    category.push_attribute(("id", "8000"));
-    category.push_attribute(("name", "Other"));
-    category.push_attribute(("description", "Other"));
+    category.push_attribute(("id", "8010"));
+    category.push_attribute(("name", "Other/Misc"));
+    category.push_attribute(("description", "Other/Misc"));
 
     writer.write_event(Event::Empty(category)).unwrap();
 
@@ -139,7 +139,7 @@ fn generate_search_response(origin: &Host, torrents: Vec<Torrent>) -> anyhow::Re
             .write_text_content(BytesText::new(torrent.added_at.to_string().as_str()))?;
         writer
             .create_element("category")
-            .write_text_content(BytesText::new("8000"))?;
+            .write_text_content(BytesText::new("8010"))?;
 
         let mut enc = BytesStart::new("enclosure");
         enc.push_attribute(("type", "application/x-bittorrent"));
@@ -202,7 +202,7 @@ fn generate_search_response(origin: &Host, torrents: Vec<Torrent>) -> anyhow::Re
         writer
             .create_element("torznab:attr")
             .with_attribute(("name", "category"))
-            .with_attribute(("value", "8000"))
+            .with_attribute(("value", "8001"))
             .write_empty()?;
 
         writer.write_event(Event::End(BytesEnd::new("item")))?;
