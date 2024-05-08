@@ -23,7 +23,7 @@ fn generate_caps_response() -> String {
     let mut writer = Writer::new(Cursor::new(Vec::new()));
 
     writer
-        .write_event(Event::Decl(BytesDecl::new("1.0", Some("utf-8"), None)))
+        .write_event(Event::Decl(BytesDecl::new("1.0", Some("UTF-8"), None)))
         .unwrap();
 
     let caps = BytesStart::new("caps");
@@ -63,6 +63,7 @@ fn generate_caps_response() -> String {
 
     category.push_attribute(("id", "1000"));
     category.push_attribute(("name", "All"));
+    category.push_attribute(("description", "All"));
 
     writer.write_event(Event::Empty(category)).unwrap();
 
