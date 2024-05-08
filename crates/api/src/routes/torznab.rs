@@ -58,6 +58,14 @@ fn generate_caps_response() -> String {
     let categories = BytesStart::new("categories");
 
     writer.write_event(Event::Start(categories)).unwrap();
+
+    let mut category = BytesStart::new("category");
+
+    category.push_attribute(("id", "1000"));
+    category.push_attribute(("name", "All"));
+
+    writer.write_event(Event::Empty(category)).unwrap();
+
     writer
         .write_event(Event::End(BytesEnd::new("categories")))
         .unwrap();
