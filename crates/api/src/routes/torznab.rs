@@ -19,6 +19,10 @@ pub struct TorznabQuery<'a> {
     limit: Option<u64>,
 }
 
+// let categories_to_add = vec![("8000", "Other"), ("2000", "Movies"), ("5000", "TV")];
+static CATEGORIES_TO_ADD: &[(&str, &str)] =
+    &[("8000", "Other"), ("2000", "Movies"), ("5000", "TV")];
+
 fn generate_caps_response() -> String {
     let mut writer = Writer::new(Cursor::new(Vec::new()));
 
@@ -59,13 +63,15 @@ fn generate_caps_response() -> String {
 
     writer.write_event(Event::Start(categories)).unwrap();
 
-    let mut category = BytesStart::new("category");
+    for (id, name) in CATEGORIES_TO_ADD {
+        let mut category = BytesStart::new("category");
 
-    category.push_attribute(("id", "8010"));
-    category.push_attribute(("name", "Other/Misc"));
-    category.push_attribute(("description", "Other/Misc"));
+        category.push_attribute(("id", *id));
+        category.push_attribute(("name", *name));
+        category.push_attribute(("description", *name));
 
-    writer.write_event(Event::Empty(category)).unwrap();
+        writer.write_event(Event::Empty(category)).unwrap();
+    }
 
     writer
         .write_event(Event::End(BytesEnd::new("categories")))
@@ -137,9 +143,10 @@ fn generate_search_response(origin: &Host, torrents: Vec<Torrent>) -> anyhow::Re
         writer
             .create_element("pubDate")
             .write_text_content(BytesText::new(torrent.added_at.to_string().as_str()))?;
+
         writer
             .create_element("category")
-            .write_text_content(BytesText::new("8010"))?;
+            .write_text_content(BytesText::new("8000"))?;
 
         let mut enc = BytesStart::new("enclosure");
         enc.push_attribute(("type", "application/x-bittorrent"));
@@ -199,11 +206,13 @@ fn generate_search_response(origin: &Host, torrents: Vec<Torrent>) -> anyhow::Re
             ))
             .write_empty()?;
 
-        writer
-            .create_element("torznab:attr")
-            .with_attribute(("name", "category"))
-            .with_attribute(("value", "8001"))
-            .write_empty()?;
+        for (id, _) in CATEGORIES_TO_ADD {
+            writer
+                .create_element("torznab:attr")
+                .with_attribute(("name", "category"))
+                .with_attribute(("value", *id))
+                .write_empty()?;
+        }
 
         writer.write_event(Event::End(BytesEnd::new("item")))?;
     }
