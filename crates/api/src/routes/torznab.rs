@@ -75,6 +75,8 @@ fn generate_caps_response() -> String {
 
         // writer.write_event(Event::Empty(category)).unwrap();
         if !subcats.is_empty() {
+            writer.write_event(Event::Start(category)).unwrap();
+
             for (sub_id, sub_name) in *subcats {
                 let mut subcat = BytesStart::new("subcat");
 
@@ -83,6 +85,10 @@ fn generate_caps_response() -> String {
 
                 writer.write_event(Event::Empty(subcat)).unwrap();
             }
+
+            writer
+                .write_event(Event::End(BytesEnd::new("category")))
+                .unwrap();
         } else {
             writer.write_event(Event::Empty(category)).unwrap();
         }
