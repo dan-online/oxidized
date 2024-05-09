@@ -15,6 +15,7 @@ use crate::Db;
 pub struct TorznabQuery<'a> {
     t: Option<&'a str>,
     q: Option<String>,
+    cat: Option<String>,
     offset: Option<u64>,
     limit: Option<u64>,
 }
@@ -105,7 +106,11 @@ fn generate_caps_response() -> String {
     String::from_utf8(writer.into_inner().into_inner()).unwrap()
 }
 
-fn generate_search_response(origin: &Host, torrents: Vec<Torrent>) -> anyhow::Result<String> {
+fn generate_search_response(
+    origin: &Host,
+    torrents: Vec<Torrent>,
+    cat: Option<String>,
+) -> anyhow::Result<String> {
     let mut writer = Writer::new(Cursor::new(Vec::new()));
 
     writer.write_event(Event::Decl(BytesDecl::new("1.0", Some("utf-8"), None)))?;
@@ -164,10 +169,36 @@ fn generate_search_response(origin: &Host, torrents: Vec<Torrent>) -> anyhow::Re
         writer
             .create_element("pubDate")
             .write_text_content(BytesText::new(torrent.added_at.to_string().as_str()))?;
-
-        // writer
-        //     .create_element("category")
-        //     .write_text_content(BytesText::new("8000"))?;
+        writer
+            .create_element("size")
+            .write_text_content(BytesText::new(
+                (torrent.size as i64 * 1000000).to_string().as_str(),
+            ))?;
+        writer
+            .create_element("infohash")
+            .write_text_content(BytesText::new(torrent.info_hash.as_str()))?;
+        writer
+            .create_element("category")
+            .write_text_content(BytesText::new(
+                cat.clone()
+                    .unwrap_or("8000".to_string())
+                    .split(",")
+                    .next()
+                    .unwrap(),
+            ))?;
+        writer
+            .create_element("seeders")
+            .write_text_content(BytesText::new(torrent.seeders.to_string().as_str()))?;
+        writer
+            .create_element("leechers")
+            .write_text_content(BytesText::new(
+                (torrent.seeders + torrent.leechers).to_string().as_str(),
+            ))?;
+        writer
+            .create_element("magneturl")
+            .write_text_content(BytesText::new(
+                format!("magnet:?xt=urn:btih:{}", torrent.info_hash.to_uppercase()).as_str(),
+            ))?;
 
         let mut enc = BytesStart::new("enclosure");
         enc.push_attribute(("type", "application/x-bittorrent"));
@@ -285,7 +316,7 @@ pub async fn route<'a>(
                 Status::Ok,
                 (
                     ContentType::XML,
-                    generate_search_response(origin, torrents).unwrap(),
+                    generate_search_response(origin, torrents, query.cat).unwrap(),
                 ),
             )
         }
