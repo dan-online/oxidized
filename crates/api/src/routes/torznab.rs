@@ -228,12 +228,29 @@ fn generate_search_response(origin: &Host, torrents: Vec<Torrent>) -> anyhow::Re
             .write_empty()?;
 
         // for (id, _, _) in CATEGORIES_TO_ADD {
-        writer
-            .create_element("torznab:attr")
-            .with_attribute(("name", "category"))
-            .with_attribute(("value", "8010"))
-            .write_empty()?;
+        // writer
+        //     .create_element("torznab:attr")
+        //     .with_attribute(("name", "category"))
+        //     .with_attribute(("value", "8010"))
+        //     .write_empty()?;
         // }
+        for (id, _, subcats) in CATEGORIES_TO_ADD {
+            if !subcats.is_empty() {
+                for (subcat_id, _) in subcats.iter() {
+                    writer
+                        .create_element("torznab:attr")
+                        .with_attribute(("name", "category"))
+                        .with_attribute(("value", *subcat_id))
+                        .write_empty()?;
+                }
+            } else {
+                writer
+                    .create_element("torznab:attr")
+                    .with_attribute(("name", "category"))
+                    .with_attribute(("value", *id))
+                    .write_empty()?;
+            }
+        }
 
         writer.write_event(Event::End(BytesEnd::new("item")))?;
     }
