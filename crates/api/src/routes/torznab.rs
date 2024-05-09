@@ -20,8 +20,11 @@ pub struct TorznabQuery<'a> {
 }
 
 // let categories_to_add = vec![("8000", "Other"), ("2000", "Movies"), ("5000", "TV")];
-static CATEGORIES_TO_ADD: &[(&str, &str)] =
-    &[("8000", "Other"), ("2000", "Movies"), ("5000", "TV")];
+static CATEGORIES_TO_ADD: &[(&str, &str, &[(&str, &str)])] = &[
+    ("8000", "Other", &[("8010", "Other/Misc")]),
+    ("2000", "Movies", &[]),
+    ("5000", "TV", &[("5040", "TV/HD"), ("5070", "TV/SD")]),
+];
 
 fn generate_caps_response() -> String {
     let mut writer = Writer::new(Cursor::new(Vec::new()));
@@ -63,14 +66,26 @@ fn generate_caps_response() -> String {
 
     writer.write_event(Event::Start(categories)).unwrap();
 
-    for (id, name) in CATEGORIES_TO_ADD {
+    for (id, name, subcats) in CATEGORIES_TO_ADD {
         let mut category = BytesStart::new("category");
 
         category.push_attribute(("id", *id));
         category.push_attribute(("name", *name));
         category.push_attribute(("description", *name));
 
-        writer.write_event(Event::Empty(category)).unwrap();
+        // writer.write_event(Event::Empty(category)).unwrap();
+        if !subcats.is_empty() {
+            for (sub_id, sub_name) in *subcats {
+                let mut subcat = BytesStart::new("subcat");
+
+                subcat.push_attribute(("id", *sub_id));
+                subcat.push_attribute(("name", *sub_name));
+
+                writer.write_event(Event::Empty(subcat)).unwrap();
+            }
+        } else {
+            writer.write_event(Event::Empty(category)).unwrap();
+        }
     }
 
     writer
@@ -144,9 +159,9 @@ fn generate_search_response(origin: &Host, torrents: Vec<Torrent>) -> anyhow::Re
             .create_element("pubDate")
             .write_text_content(BytesText::new(torrent.added_at.to_string().as_str()))?;
 
-        writer
-            .create_element("category")
-            .write_text_content(BytesText::new("8000"))?;
+        // writer
+        //     .create_element("category")
+        //     .write_text_content(BytesText::new("8000"))?;
 
         let mut enc = BytesStart::new("enclosure");
         enc.push_attribute(("type", "application/x-bittorrent"));
@@ -206,13 +221,13 @@ fn generate_search_response(origin: &Host, torrents: Vec<Torrent>) -> anyhow::Re
             ))
             .write_empty()?;
 
-        for (id, _) in CATEGORIES_TO_ADD {
-            writer
-                .create_element("torznab:attr")
-                .with_attribute(("name", "category"))
-                .with_attribute(("value", *id))
-                .write_empty()?;
-        }
+        // for (id, _, _) in CATEGORIES_TO_ADD {
+        writer
+            .create_element("torznab:attr")
+            .with_attribute(("name", "category"))
+            .with_attribute(("value", "8010"))
+            .write_empty()?;
+        // }
 
         writer.write_event(Event::End(BytesEnd::new("item")))?;
     }
