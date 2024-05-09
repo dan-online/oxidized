@@ -38,3 +38,36 @@ pub struct Tracker {
     pub leechers: i32,
     pub last_scrape: DateTime,
 }
+
+impl Model {
+    pub fn get_category(&self) -> (&str, &str) {
+        let name = self.name.as_ref().unwrap();
+        let tvshow_re = regex::Regex::new(r"(.+?)(S(\d{2})|E(\d{2})|Season|Episode)(.*)").unwrap();
+
+        if tvshow_re.is_match(name) {
+            return ("TV", "5000");
+        }
+
+        if name.contains("1080p") || name.contains("720p") {
+            return ("Movies", "2000");
+        }
+
+        if name.contains("MP3") || name.contains("FLAC") {
+            return ("Audio", "3000");
+        }
+
+        if name.contains("PDF") || name.contains("EPUB") {
+            return ("Books", "7000");
+        }
+
+        if name.contains("PC") || name.contains("MAC") {
+            return ("PC", "4000");
+        }
+
+        if name.contains("XXX") {
+            return ("XXX", "6000");
+        }
+
+        ("Other", "8000")
+    }
+}

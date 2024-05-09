@@ -15,7 +15,6 @@ use crate::Db;
 pub struct TorznabQuery<'a> {
     t: Option<&'a str>,
     q: Option<String>,
-    cat: Option<String>,
     offset: Option<u64>,
     limit: Option<u64>,
 }
@@ -106,11 +105,7 @@ fn generate_caps_response() -> String {
     String::from_utf8(writer.into_inner().into_inner()).unwrap()
 }
 
-fn generate_search_response(
-    origin: &Host,
-    torrents: Vec<Torrent>,
-    cat: Option<String>,
-) -> anyhow::Result<String> {
+fn generate_search_response(origin: &Host, torrents: Vec<&Torrent>) -> anyhow::Result<String> {
     let mut writer = Writer::new(Cursor::new(Vec::new()));
 
     writer.write_event(Event::Decl(BytesDecl::new("1.0", Some("utf-8"), None)))?;
@@ -151,7 +146,7 @@ fn generate_search_response(
 
         writer
             .create_element("title")
-            .write_text_content(BytesText::new(torrent.name.unwrap().as_str()))?;
+            .write_text_content(BytesText::new(torrent.name.as_ref().unwrap().as_str()))?;
         writer
             .create_element("link")
             .write_text_content(BytesText::new(
@@ -179,13 +174,9 @@ fn generate_search_response(
             .write_text_content(BytesText::new(torrent.info_hash.as_str()))?;
         writer
             .create_element("category")
-            .write_text_content(BytesText::new(
-                cat.clone()
-                    .unwrap_or("8000".to_string())
-                    .split(",")
-                    .next()
-                    .unwrap(),
-            ))?;
+            .write_text_content(BytesText::new(match torrent.get_category() {
+                (_, cat) => cat,
+            }))?;
         writer
             .create_element("seeders")
             .write_text_content(BytesText::new(torrent.seeders.to_string().as_str()))?;
@@ -258,30 +249,16 @@ fn generate_search_response(
             ))
             .write_empty()?;
 
-        // for (id, _, _) in CATEGORIES_TO_ADD {
-        // writer
-        //     .create_element("torznab:attr")
-        //     .with_attribute(("name", "category"))
-        //     .with_attribute(("value", "8010"))
-        //     .write_empty()?;
-        // }
-        for (id, _, subcats) in CATEGORIES_TO_ADD {
-            if !subcats.is_empty() {
-                for (subcat_id, _) in subcats.iter() {
-                    writer
-                        .create_element("torznab:attr")
-                        .with_attribute(("name", "category"))
-                        .with_attribute(("value", *subcat_id))
-                        .write_empty()?;
-                }
-            } else {
-                writer
-                    .create_element("torznab:attr")
-                    .with_attribute(("name", "category"))
-                    .with_attribute(("value", *id))
-                    .write_empty()?;
-            }
-        }
+        writer
+            .create_element("torznab:attr")
+            .with_attribute(("name", "category"))
+            .with_attribute((
+                "value",
+                match torrent.get_category() {
+                    (cat_id, _) => cat_id,
+                },
+            ))
+            .write_empty()?;
 
         writer.write_event(Event::End(BytesEnd::new("item")))?;
     }
@@ -316,7 +293,7 @@ pub async fn route<'a>(
                 Status::Ok,
                 (
                     ContentType::XML,
-                    generate_search_response(origin, torrents, query.cat).unwrap(),
+                    generate_search_response(origin, torrents.iter().collect()).unwrap(),
                 ),
             )
         }
