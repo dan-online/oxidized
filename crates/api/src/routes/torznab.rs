@@ -175,7 +175,7 @@ fn generate_search_response(origin: &Host, torrents: Vec<&Torrent>) -> anyhow::R
         writer
             .create_element("category")
             .write_text_content(BytesText::new(match torrent.get_category() {
-                (cat, _) => cat,
+                (_, cat_id) => cat_id,
             }))?;
         writer
             .create_element("seeders")
@@ -255,7 +255,7 @@ fn generate_search_response(origin: &Host, torrents: Vec<&Torrent>) -> anyhow::R
             .with_attribute((
                 "value",
                 match torrent.get_category() {
-                    (cat_id, _) => cat_id,
+                    (_, cat_id) => cat_id,
                 },
             ))
             .write_empty()?;
