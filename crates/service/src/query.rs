@@ -58,6 +58,7 @@ impl Query {
             )
             .offset(offset.unwrap_or(0))
             .limit(limit.unwrap_or(100))
+            .order_by_desc(torrent::Column::AddedAt)
             .all(db)
             .await
     }
