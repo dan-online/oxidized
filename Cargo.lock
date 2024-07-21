@@ -169,7 +169,7 @@ checksum = "14472621825744357f5e97848a92d12f412461b6dc472c9a934ab4235e4f58ed"
 dependencies = [
  "anyhow",
  "aquatic_common",
- "aquatic_http_protocol 0.9.0",
+ "aquatic_http_protocol",
  "aquatic_toml_config",
  "arc-swap",
  "arrayvec",
@@ -196,24 +196,6 @@ dependencies = [
  "slotmap",
  "socket2 0.5.6",
  "thiserror",
-]
-
-[[package]]
-name = "aquatic_http_protocol"
-version = "0.8.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2eed275bbdbe38b61d0d85a6c916209bbdd4dd3235f499c9b9034262ff0e71e5"
-dependencies = [
- "anyhow",
- "compact_str",
- "hex 0.4.3",
- "httparse",
- "itoa",
- "log",
- "memchr",
- "serde",
- "serde_bencode",
- "urlencoding",
 ]
 
 [[package]]
@@ -3447,7 +3429,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "aquatic_http",
- "aquatic_http_protocol 0.8.0",
+ "aquatic_http_protocol",
  "aquatic_udp_protocol",
  "futures-util",
  "hex 0.4.3",
